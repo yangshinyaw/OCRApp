@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCR Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>OCR Results</h1>
+    <p><strong>Extracted Text:</strong></p>
+    <textarea rows="10" cols="50" readonly>{{ text }}</textarea>
+    <div>
+        <h2>Images</h2>
+        <h3>Original Image</h3>
+        <img src="{{ url_for('uploaded_file', filename=request.files['file'].filename) }}" alt="Original Image">
+        <h3>Enlarged Image</h3>
+        <img src="{{ url_for('processed_file', filename='enlarged_image.png') }}" alt="Enlarged Image">
+        <h3>Enhanced Image</h3>
+        <img src="{{ url_for('processed_file', filename='enhanced_image.png') }}" alt="Enhanced Image">
+        <h3>Preprocessed Image</h3>
+        <img src="{{ url_for('processed_file', filename='preprocessed_image.png') }}" alt="Preprocessed Image">
+    </div>
+</body>
+</html>
