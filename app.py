@@ -8,11 +8,13 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['PROCESSED_FOLDER'] = 'processed'
 
+# Adjust these paths for your live server
 os.environ['TESSDATA_PREFIX'] = r'C:\Program Files\Tesseract-OCR\tessdata'
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+
+
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['PROCESSED_FOLDER'], exist_ok=True)
-
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 def enlarge_image(image_path, scale_factor=2):
     try:
@@ -23,7 +25,7 @@ def enlarge_image(image_path, scale_factor=2):
         enlarged_image.save(enlarged_image_path)
         return enlarged_image_path
     except Exception as e:
-        print(f"Error in enlarge_image: {e}")
+        app.logger.error(f"Error in enlarge_image: {e}")
         return None
 
 def enhance_image(image_path):
@@ -41,7 +43,7 @@ def enhance_image(image_path):
         image.save(enhanced_image_path)
         return enhanced_image_path
     except Exception as e:
-        print(f"Error in enhance_image: {e}")
+        app.logger.error(f"Error in enhance_image: {e}")
         return None
 
 def preprocess_image(image_path):
@@ -54,7 +56,7 @@ def preprocess_image(image_path):
         cv2.imwrite(preprocessed_image_path, binary_image)
         return preprocessed_image_path
     except Exception as e:
-        print(f"Error in preprocess_image: {e}")
+        app.logger.error(f"Error in preprocess_image: {e}")
         return None
 
 def ocr_image(image_path):
@@ -70,20 +72,18 @@ def ocr_image(image_path):
             return "", "", "", ""
 
         custom_config = r'--psm 6'
-        print(f"Preprocessed Image Path: {preprocessed_image_path}")  # Debugging line
+        app.logger.info(f"Preprocessed Image Path: {preprocessed_image_path}")
 
         text = pytesseract.image_to_string(Image.open(preprocessed_image_path), config=custom_config, lang='eng')
 
-        print(f"Extracted Text: {text}")  # Debugging line
+        app.logger.info(f"Extracted Text: {text}")
         return text, enlarged_image_path, enhanced_image_path, preprocessed_image_path
     except pytesseract.TesseractNotFoundError as e:
-        print(f"Tesseract Not Found: {e}")
+        app.logger.error(f"Tesseract Not Found: {e}")
         return "", "", "", ""
     except Exception as e:
-        print(f"Error in ocr_image: {e}")
+        app.logger.error(f"Error in ocr_image: {e}")
         return "", "", "", ""
-
-
 
 @app.route('/')
 def index():
@@ -98,24 +98,21 @@ def upload_file():
         if file.filename == '':
             return "No selected file", 400
         if file:
-            print(f"Received file: {file.filename}")  # Debugging line
+            app.logger.info(f"Received file: {file.filename}")
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
             file.save(file_path)
             extracted_text, enlarged_image_path, enhanced_image_path, preprocessed_image_path = ocr_image(file_path)
-            print(f"Extracted Text: {extracted_text}")  # Debugging line
+            app.logger.info(f"Extracted Text: {extracted_text}")
             response = render_template('result.html', text=extracted_text,
                                        filename=file.filename,
                                        enlarged_image=url_for('processed_file', filename='enlarged_image.png'),
                                        enhanced_image=url_for('processed_file', filename='enhanced_image.png'),
                                        preprocessed_image=url_for('processed_file', filename='preprocessed_image.png'))
-            print(f"Rendered Response: {response}")  # Log the rendered HTML response
+            app.logger.info(f"Rendered Response: {response}")
             return response
     except Exception as e:
-        print(f"Error in upload_file: {e}")
+        app.logger.error(f"Error in upload_file: {e}")
         return str(e), 500
-
-
-
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
