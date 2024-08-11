@@ -8,11 +8,12 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['PROCESSED_FOLDER'] = 'processed'
 
-# Adjust these paths for your live server
-os.environ['TESSDATA_PREFIX'] = r'C:\Program Files\Tesseract-OCR\tessdata'
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+# Update these paths for your live server
+# Ensure these paths are correct and accessible on the live server
+pytesseract.pytesseract.tesseract_cmd = os.getenv('TESSERACT_CMD', r'C:\Program Files\Tesseract-OCR\tesseract.exe')
+os.environ['TESSDATA_PREFIX'] = os.getenv('TESSDATA_PREFIX', r'C:\Program Files\Tesseract-OCR\tessdata')
 
-
+# Create directories if they do not exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['PROCESSED_FOLDER'], exist_ok=True)
 
@@ -23,6 +24,7 @@ def enlarge_image(image_path, scale_factor=2):
         enlarged_image = image.resize(new_size, Image.LANCZOS)
         enlarged_image_path = os.path.join(app.config['PROCESSED_FOLDER'], 'enlarged_image.png')
         enlarged_image.save(enlarged_image_path)
+        app.logger.info(f"Enlarged image saved to: {enlarged_image_path}")
         return enlarged_image_path
     except Exception as e:
         app.logger.error(f"Error in enlarge_image: {e}")
@@ -41,6 +43,7 @@ def enhance_image(image_path):
         image = image.filter(ImageFilter.MedianFilter())
         enhanced_image_path = os.path.join(app.config['PROCESSED_FOLDER'], 'enhanced_image.png')
         image.save(enhanced_image_path)
+        app.logger.info(f"Enhanced image saved to: {enhanced_image_path}")
         return enhanced_image_path
     except Exception as e:
         app.logger.error(f"Error in enhance_image: {e}")
@@ -54,6 +57,7 @@ def preprocess_image(image_path):
                                              cv2.THRESH_BINARY, 11, 2)
         preprocessed_image_path = os.path.join(app.config['PROCESSED_FOLDER'], 'preprocessed_image.png')
         cv2.imwrite(preprocessed_image_path, binary_image)
+        app.logger.info(f"Preprocessed image saved to: {preprocessed_image_path}")
         return preprocessed_image_path
     except Exception as e:
         app.logger.error(f"Error in preprocess_image: {e}")
@@ -74,8 +78,12 @@ def ocr_image(image_path):
         custom_config = r'--psm 6'
         app.logger.info(f"Preprocessed Image Path: {preprocessed_image_path}")
 
-        text = pytesseract.image_to_string(Image.open(preprocessed_image_path), config=custom_config, lang='eng')
+        # Verify Tesseract command and data prefix
+        if not os.path.exists(pytesseract.pytesseract.tesseract_cmd):
+            app.logger.error(f"Tesseract executable not found at: {pytesseract.pytesseract.tesseract_cmd}")
+            return "", "", "", ""
 
+        text = pytesseract.image_to_string(Image.open(preprocessed_image_path), config=custom_config, lang='eng')
         app.logger.info(f"Extracted Text: {text}")
         return text, enlarged_image_path, enhanced_image_path, preprocessed_image_path
     except pytesseract.TesseractNotFoundError as e:
@@ -93,9 +101,11 @@ def index():
 def upload_file():
     try:
         if 'file' not in request.files:
+            app.logger.error("No file part in request")
             return "No file part", 400
         file = request.files['file']
         if file.filename == '':
+            app.logger.error("No selected file")
             return "No selected file", 400
         if file:
             app.logger.info(f"Received file: {file.filename}")
@@ -123,4 +133,4 @@ def processed_file(filename):
     return send_from_directory(app.config['PROCESSED_FOLDER'], filename)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=False)  # Ensure it's accessible externally
