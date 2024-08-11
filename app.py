@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, send_from_directory
+from flask import Flask, request, render_template, send_from_directory, url_for
 import os
 import pytesseract
 from PIL import Image, ImageEnhance, ImageFilter
@@ -8,6 +8,7 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['PROCESSED_FOLDER'] = 'processed'
 
+os.environ['TESSDATA_PREFIX'] = r'C:\Program Files\Tesseract-OCR\tessdata'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['PROCESSED_FOLDER'], exist_ok=True)
 
@@ -22,7 +23,8 @@ def enlarge_image(image_path, scale_factor=2):
         enlarged_image.save(enlarged_image_path)
         return enlarged_image_path
     except Exception as e:
-        return str(e)
+        print(f"Error in enlarge_image: {e}")
+        return None
 
 def enhance_image(image_path):
     try:
@@ -39,7 +41,8 @@ def enhance_image(image_path):
         image.save(enhanced_image_path)
         return enhanced_image_path
     except Exception as e:
-        return str(e)
+        print(f"Error in enhance_image: {e}")
+        return None
 
 def preprocess_image(image_path):
     try:
@@ -51,7 +54,8 @@ def preprocess_image(image_path):
         cv2.imwrite(preprocessed_image_path, binary_image)
         return preprocessed_image_path
     except Exception as e:
-        return str(e)
+        print(f"Error in preprocess_image: {e}")
+        return None
 
 def ocr_image(image_path):
     try:
@@ -64,13 +68,22 @@ def ocr_image(image_path):
         preprocessed_image_path = preprocess_image(enhanced_image_path)
         if not preprocessed_image_path:
             return "", "", "", ""
-        custom_config = r'--oem 3 --psm 3 '
+
+        custom_config = r'--psm 6'
+        print(f"Preprocessed Image Path: {preprocessed_image_path}")  # Debugging line
+
         text = pytesseract.image_to_string(Image.open(preprocessed_image_path), config=custom_config, lang='eng')
+
+        print(f"Extracted Text: {text}")  # Debugging line
         return text, enlarged_image_path, enhanced_image_path, preprocessed_image_path
     except pytesseract.TesseractNotFoundError as e:
+        print(f"Tesseract Not Found: {e}")
         return "", "", "", ""
     except Exception as e:
+        print(f"Error in ocr_image: {e}")
         return "", "", "", ""
+
+
 
 @app.route('/')
 def index():
@@ -78,20 +91,31 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    if 'file' not in request.files:
-        return "No file part", 400
-    file = request.files['file']
-    if file.filename == '':
-        return "No selected file", 400
-    if file:
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-        file.save(file_path)
-        extracted_text, enlarged_image_path, enhanced_image_path, preprocessed_image_path = ocr_image(file_path)
-        return render_template('result.html', text=extracted_text,
-                               enlarged_image=enlarged_image_path,
-                               enhanced_image=enhanced_image_path,
-                               preprocessed_image=preprocessed_image_path)
-    return "Something went wrong", 400
+    try:
+        if 'file' not in request.files:
+            return "No file part", 400
+        file = request.files['file']
+        if file.filename == '':
+            return "No selected file", 400
+        if file:
+            print(f"Received file: {file.filename}")  # Debugging line
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+            file.save(file_path)
+            extracted_text, enlarged_image_path, enhanced_image_path, preprocessed_image_path = ocr_image(file_path)
+            print(f"Extracted Text: {extracted_text}")  # Debugging line
+            response = render_template('result.html', text=extracted_text,
+                                       filename=file.filename,
+                                       enlarged_image=url_for('processed_file', filename='enlarged_image.png'),
+                                       enhanced_image=url_for('processed_file', filename='enhanced_image.png'),
+                                       preprocessed_image=url_for('processed_file', filename='preprocessed_image.png'))
+            print(f"Rendered Response: {response}")  # Log the rendered HTML response
+            return response
+    except Exception as e:
+        print(f"Error in upload_file: {e}")
+        return str(e), 500
+
+
+
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):

@@ -3,16 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OCR Tool - Upload Image</title>
+    <title>OCR Tool - Capture or Upload Image</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
     <div class="container">
-        <h1>Upload an Image for OCR</h1>
+        <h1>Capture or Upload an Image for OCR</h1>
+        
+        <!-- File upload form -->
         <form action="/upload" method="post" enctype="multipart/form-data">
-            <input type="file" name="file" accept="image/*" required>
+            <input type="file" name="file" accept="image/*" id="fileInput" required>
             <button type="submit">Upload</button>
         </form>
+        
+        <!-- Camera capture form -->
+        <form id="cameraForm" action="/upload" method="post" enctype="multipart/form-data">
+            <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+            <button type="button" onclick="captureImage()">Capture with Camera</button>
+        </form>
     </div>
+
+    <script>
+        function captureImage() {
+            document.getElementById('cameraInput').click();
+        }
+
+        document.getElementById('cameraInput').addEventListener('change', function(event) {
+            var formData = new FormData();
+            formData.append('file', event.target.files[0]);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(text => {
+                document.body.innerHTML = text; // Render the response from the server
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    </script>
 </body>
 </html>
