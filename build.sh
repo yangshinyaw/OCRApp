@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
 # Update package lists
-apt-get update 
+sudo apt-get update 
 
 # Install Tesseract OCR
-apt-get install -y tesseract-ocr
+sudo apt-get install -y tesseract-ocr
 
 # (Optional) Install additional language data if needed
-# apt-get install -y tesseract-ocr-all
+# sudo apt-get install -y tesseract-ocr-all
