@@ -8,10 +8,27 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['PROCESSED_FOLDER'] = 'processed'
 
-# Update these paths for your live server
-# Ensure these paths are correct and accessible on the live server
-pytesseract.pytesseract.tesseract_cmd = os.getenv('TESSERACT_CMD', r'C:\Program Files\Tesseract-OCR\tesseract.exe')
-os.environ['TESSDATA_PREFIX'] = os.getenv('TESSDATA_PREFIX', r'C:\Program Files\Tesseract-OCR\tessdata')
+# Determine if running on Windows or UNIX-like system
+is_windows = os.name == 'nt'
+
+# Set paths for Tesseract executable and tessdata directory
+if is_windows:
+    tesseract_cmd = r'D:\Tesseract-OCR\tesseract.exe'  # Use raw string for Windows path
+else:
+    tesseract_cmd = r'D:\Tesseract-OCR\tesseract.exe'  
+
+tessdata_prefix = os.path.join(os.getcwd(), 'Tesseract-OCR', 'tessdata')
+
+# Configure Tesseract for pytesseract
+if not os.path.isfile(tesseract_cmd):
+    app.logger.error(f"Tesseract executable not found at: {tesseract_cmd}")
+else:
+    pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
+
+if not os.path.isdir(tessdata_prefix):
+    app.logger.error(f"Tesseract data directory not found at: {tessdata_prefix}")
+else:
+    os.environ['TESSDATA_PREFIX'] = tessdata_prefix
 
 # Create directories if they do not exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -113,13 +130,11 @@ def upload_file():
             file.save(file_path)
             extracted_text, enlarged_image_path, enhanced_image_path, preprocessed_image_path = ocr_image(file_path)
             app.logger.info(f"Extracted Text: {extracted_text}")
-            response = render_template('result.html', text=extracted_text,
-                                       filename=file.filename,
-                                       enlarged_image=url_for('processed_file', filename='enlarged_image.png'),
-                                       enhanced_image=url_for('processed_file', filename='enhanced_image.png'),
-                                       preprocessed_image=url_for('processed_file', filename='preprocessed_image.png'))
-            app.logger.info(f"Rendered Response: {response}")
-            return response
+            return render_template('result.html', text=extracted_text,
+                                   filename=file.filename,
+                                   enlarged_image=url_for('processed_file', filename='enlarged_image.png'),
+                                   enhanced_image=url_for('processed_file', filename='enhanced_image.png'),
+                                   preprocessed_image=url_for('processed_file', filename='preprocessed_image.png'))
     except Exception as e:
         app.logger.error(f"Error in upload_file: {e}")
         return str(e), 500
@@ -133,4 +148,4 @@ def processed_file(filename):
     return send_from_directory(app.config['PROCESSED_FOLDER'], filename)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)  # Ensure it's accessible externally
+    app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)), debug=False)
