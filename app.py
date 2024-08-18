@@ -32,7 +32,10 @@ if os.path.isfile(tesseract_cmd) and not tesseract_cmd.endswith('.exe'):
     except Exception as e:
         app.logger.error(f"Failed to change permissions for Tesseract executable: {e}")
 else:
-    app.logger.error(f"Tesseract executable not found at: {tesseract_cmd}")
+    if os.path.isfile(tesseract_cmd):
+        app.logger.info(f"Tesseract executable found at: {tesseract_cmd}")
+    else:
+        app.logger.error(f"Tesseract executable not found at: {tesseract_cmd}")
 
 # Configure Tesseract for pytesseract
 pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
