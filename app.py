@@ -5,6 +5,9 @@ import pytesseract
 from PIL import Image, ImageEnhance, ImageFilter
 import cv2
 
+# Load environment variables from .env file
+load_dotenv()
+
 # Get the current working directory
 project_root = os.path.dirname(os.path.abspath(__file__))
 
