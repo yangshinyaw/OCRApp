@@ -13,8 +13,8 @@ load_dotenv()
 project_root = os.path.dirname(os.path.abspath(__file__))
 
 # Set the paths for tesseract binary and tessdata using environment variables
-tesseract_cmd = os.getenv('TESSERACT_CMD', default='/opt/render/project/src/Tesseract-OCR/tesseract')
-tessdata_prefix = os.getenv('TESSDATA_PREFIX', default='/opt/render/project/src/Tesseract-OCR/tessdata')
+tesseract_cmd = os.getenv('TESSERACT_CMD', default=os.path.join(project_root, 'Tesseract-OCR', 'tesseract'))
+tessdata_prefix = os.getenv('TESSDATA_PREFIX', default=os.path.join(project_root, 'Tesseract-OCR', 'tessdata'))
 
 # Debugging prints
 print(f"Tesseract CMD: {tesseract_cmd}")
