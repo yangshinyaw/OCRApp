@@ -12,8 +12,8 @@ load_dotenv()
 # Get the current working directory
 project_root = os.path.dirname(os.path.abspath(__file__))
 
-# Set the paths for tesseract.exe and tessdata using environment variables
-tesseract_cmd = os.getenv('TESSERACT_CMD', default='/opt/render/project/src/Tesseract-OCR/tesseract.exe')
+# Set the paths for tesseract binary and tessdata using environment variables
+tesseract_cmd = os.getenv('TESSERACT_CMD', default='/opt/render/project/src/Tesseract-OCR/tesseract')
 tessdata_prefix = os.getenv('TESSDATA_PREFIX', default='/opt/render/project/src/Tesseract-OCR/tessdata')
 
 # Debugging prints
@@ -24,9 +24,10 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['PROCESSED_FOLDER'] = 'processed'
 
-# Ensure Tesseract executable is executable
-if os.path.isfile(tesseract_cmd):
+# Ensure Tesseract executable is executable (if using Windows binary, this part is not needed)
+if os.path.isfile(tesseract_cmd) and not tesseract_cmd.endswith('.exe'):
     try:
+        # Ensure the binary is executable (use this only if it is a Unix/Linux binary)
         os.chmod(tesseract_cmd, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
     except Exception as e:
         app.logger.error(f"Failed to change permissions for Tesseract executable: {e}")
