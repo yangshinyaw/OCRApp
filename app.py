@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import pytesseract
 from PIL import Image, ImageEnhance, ImageFilter
 import cv2
+import stat
 
 # Load environment variables from .env file
 load_dotenv()
@@ -23,11 +24,17 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['PROCESSED_FOLDER'] = 'processed'
 
-# Configure Tesseract for pytesseract
-if not os.path.isfile(tesseract_cmd):
-    app.logger.error(f"Tesseract executable not found at: {tesseract_cmd}")
+# Ensure Tesseract executable is executable
+if os.path.isfile(tesseract_cmd):
+    try:
+        os.chmod(tesseract_cmd, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+    except Exception as e:
+        app.logger.error(f"Failed to change permissions for Tesseract executable: {e}")
 else:
-    pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
+    app.logger.error(f"Tesseract executable not found at: {tesseract_cmd}")
+
+# Configure Tesseract for pytesseract
+pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
 
 if not os.path.isdir(tessdata_prefix):
     app.logger.error(f"Tesseract data directory not found at: {tessdata_prefix}")
