@@ -1,18 +1,27 @@
 from flask import Flask, request, render_template, send_from_directory, url_for
 import os
+from dotenv import load_dotenv
 import pytesseract
 from PIL import Image, ImageEnhance, ImageFilter
 import cv2
 
+# Load environment variables from .env file
+load_dotenv()
+
+# Get the current working directory
+project_root = os.path.dirname(os.path.abspath(__file__))
+
+# Set the paths for tesseract.exe and tessdata within the Tesseract-OCR folder
+tesseract_cmd = os.path.join(project_root, 'Tesseract-OCR', 'tesseract.exe')
+tessdata_prefix = os.path.join(project_root, 'Tesseract-OCR', 'tessdata')
+
+# Debugging prints
+print(f"Tesseract CMD: {tesseract_cmd}")
+print(f"Tessdata Prefix: {tessdata_prefix}")
+
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['PROCESSED_FOLDER'] = 'processed'
-
-# Set paths for Tesseract executable and tessdata directory
-tesseract_cmd = '/usr/bin/tesseract'  # Default path for Tesseract in Linux
-
-# Tesseract data directory (customize if you need additional languages)
-tessdata_prefix = '/usr/share/tesseract-ocr/4.00/tessdata/'
 
 # Configure Tesseract for pytesseract
 if not os.path.isfile(tesseract_cmd):
