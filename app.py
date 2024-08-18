@@ -8,16 +8,11 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['PROCESSED_FOLDER'] = 'processed'
 
-# Determine if running on Windows or UNIX-like system
-is_windows = os.name == 'nt'
-
 # Set paths for Tesseract executable and tessdata directory
-if is_windows:
-    tesseract_cmd = r'D:\Tesseract-OCR\tesseract.exe'  # Use raw string for Windows path
-else:
-    tesseract_cmd = r'D:\Tesseract-OCR\tesseract.exe'  
+tesseract_cmd = '/usr/bin/tesseract'  # Default path for Tesseract in Linux
 
-tessdata_prefix = os.path.join(os.getcwd(), 'Tesseract-OCR', 'tessdata')
+# Tesseract data directory (customize if you need additional languages)
+tessdata_prefix = '/usr/share/tesseract-ocr/4.00/tessdata/'
 
 # Configure Tesseract for pytesseract
 if not os.path.isfile(tesseract_cmd):
@@ -94,11 +89,6 @@ def ocr_image(image_path):
 
         custom_config = r'--psm 6'
         app.logger.info(f"Preprocessed Image Path: {preprocessed_image_path}")
-
-        # Verify Tesseract command and data prefix
-        if not os.path.exists(pytesseract.pytesseract.tesseract_cmd):
-            app.logger.error(f"Tesseract executable not found at: {pytesseract.pytesseract.tesseract_cmd}")
-            return "", "", "", ""
 
         text = pytesseract.image_to_string(Image.open(preprocessed_image_path), config=custom_config, lang='eng')
         app.logger.info(f"Extracted Text: {text}")
